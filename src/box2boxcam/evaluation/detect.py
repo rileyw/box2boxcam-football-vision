@@ -35,6 +35,31 @@ def run_detector(weights, image_paths, imgsz=960, conf=0.05, device=None, classe
     return out
 
 
+def is_coreml(weights):
+    return Path(weights).suffix == ".mlpackage"
+
+
+def coreml_confidence_floor(weights):
+    """Confidence threshold of the NMS stage inside a Core ML pipeline, or ``None``.
+
+    Ultralytics passes only the image to a Core ML model exported with ``nms=True``,
+    so the model's own threshold, not ``conf``, decides which boxes come out.
+    Reading the spec needs ``coremltools``; returns ``None`` when it is missing or
+    the model has no NMS stage.
+    """
+    try:
+        import coremltools as ct
+    except ImportError:
+        return None
+    spec = ct.utils.load_spec(str(weights))
+    if spec.WhichOneof("Type") != "pipeline":
+        return None
+    for model in spec.pipeline.models:
+        if model.WhichOneof("Type") == "nonMaximumSuppression":
+            return float(model.nonMaximumSuppression.confidenceThreshold)
+    return None
+
+
 def save_detections(path, ids, detections):
     """Write detections as JSON (``{frame id: {"boxes": ..., "conf": ...}}``)."""
     data = {
