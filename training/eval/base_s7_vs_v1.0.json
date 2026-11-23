@@ -1,0 +1,172 @@
+{
+ "models": {
+  "base_s7": {
+   "balls": 219,
+   "small_balls": 149,
+   "frames": 396,
+   "thresholds": [
+    {
+     "threshold": 0.25,
+     "tp": 108,
+     "fp": 134,
+     "small_tp": 66
+    },
+    {
+     "threshold": 0.35,
+     "tp": 105,
+     "fp": 94,
+     "small_tp": 65
+    },
+    {
+     "threshold": 0.45,
+     "tp": 94,
+     "fp": 62,
+     "small_tp": 56
+    },
+    {
+     "threshold": 0.55,
+     "tp": 82,
+     "fp": 14,
+     "small_tp": 45
+    }
+   ],
+   "max_tp_under_fp_budget": {
+    "25": 88,
+    "60": 94,
+    "100": 107,
+    "200": 115
+   }
+  },
+  "v1.0": {
+   "balls": 219,
+   "small_balls": 149,
+   "frames": 396,
+   "thresholds": [
+    {
+     "threshold": 0.25,
+     "tp": 100,
+     "fp": 104,
+     "small_tp": 56
+    },
+    {
+     "threshold": 0.35,
+     "tp": 93,
+     "fp": 52,
+     "small_tp": 51
+    },
+    {
+     "threshold": 0.45,
+     "tp": 85,
+     "fp": 21,
+     "small_tp": 46
+    },
+    {
+     "threshold": 0.55,
+     "tp": 82,
+     "fp": 4,
+     "small_tp": 46
+    }
+   ],
+   "max_tp_under_fp_budget": {
+    "25": 85,
+    "60": 93,
+    "100": 100,
+    "200": 110
+   }
+  }
+ },
+ "table": "| model | 0.25 TP/FP (small) | 0.35 TP/FP (small) | 0.45 TP/FP (small) | 0.55 TP/FP (small) | max TP at FP<=25/60/100/200 |\n|---|---|---|---|---|---|\n| base_s7 | 108/134 (66) | 105/94 (65) | 94/62 (56) | 82/14 (45) | 88/94/107/115 |\n| v1.0 | 100/104 (56) | 93/52 (51) | 85/21 (46) | 82/4 (46) | 85/93/100/110 |",
+ "bootstrap": {
+  "A": "base_s7",
+  "B": "v1.0",
+  "resamples": 2000,
+  "seed": 0,
+  "stats": {
+   "TP@0.25": {
+    "observed": 8,
+    "low": -1.0,
+    "high": 18.0,
+    "p_le_0": 0.0545
+   },
+   "FP@0.25": {
+    "observed": 30,
+    "low": 8.0,
+    "high": 52.0,
+    "p_le_0": 0.0025
+   },
+   "TP@0.35": {
+    "observed": 12,
+    "low": 3.0,
+    "high": 22.0,
+    "p_le_0": 0.009
+   },
+   "FP@0.35": {
+    "observed": 42,
+    "low": 24.0,
+    "high": 62.024999999999864,
+    "p_le_0": 0.0
+   },
+   "TP@0.45": {
+    "observed": 9,
+    "low": 0.0,
+    "high": 19.0,
+    "p_le_0": 0.027
+   },
+   "FP@0.45": {
+    "observed": 41,
+    "low": 26.0,
+    "high": 56.0,
+    "p_le_0": 0.0
+   },
+   "TP@0.55": {
+    "observed": 0,
+    "low": -8.0,
+    "high": 8.0,
+    "p_le_0": 0.551
+   },
+   "FP@0.55": {
+    "observed": 10,
+    "low": 3.0,
+    "high": 17.0,
+    "p_le_0": 0.006
+   },
+   "smallTP@0.25": {
+    "observed": 10,
+    "low": 3.0,
+    "high": 18.0,
+    "p_le_0": 0.0045
+   },
+   "maxTP@FP<=25": {
+    "observed": 3,
+    "low": -7.0,
+    "high": 12.0,
+    "p_le_0": 0.3685
+   },
+   "maxTP@FP<=60": {
+    "observed": 1,
+    "low": -9.0,
+    "high": 12.0,
+    "p_le_0": 0.421
+   },
+   "maxTP@FP<=100": {
+    "observed": 7,
+    "low": -4.0,
+    "high": 18.0,
+    "p_le_0": 0.1185
+   },
+   "maxTP@FP<=200": {
+    "observed": 5,
+    "low": -5.0,
+    "high": 14.0,
+    "p_le_0": 0.2255
+   }
+  }
+ },
+ "recovery_at_first_threshold": {
+  "b_misses": 119,
+  "a_recovers": 17,
+  "b_misses_small": 93,
+  "a_recovers_small": 13,
+  "a_loses": 9
+ }
+}

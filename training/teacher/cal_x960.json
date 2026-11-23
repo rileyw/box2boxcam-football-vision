@@ -1,0 +1,187 @@
+{
+ "val_frames": 292,
+ "val_balls": 279,
+ "val_small_balls": 120,
+ "teacher": {
+  "weights": [
+   "runs/teacher_x960_s42/weights/best.pt"
+  ],
+  "max_tp_under_fp_budget": {
+   "25": 156,
+   "60": 195,
+   "100": 202,
+   "200": 206
+  },
+  "small_tp": {
+   "0.15": 84,
+   "0.25": 80
+  },
+  "tp_fp": {
+   "0.15": [
+    200,
+    76
+   ],
+   "0.25": [
+    192,
+    55
+   ],
+   "0.5": [
+    168,
+    28
+   ]
+  }
+ },
+ "student": {
+  "weights": [
+   "eval/models/base_s42.pt"
+  ],
+  "max_tp_under_fp_budget": {
+   "25": 176,
+   "60": 203,
+   "100": 209,
+   "200": 212
+  },
+  "small_tp": {
+   "0.15": 85,
+   "0.25": 82
+  },
+  "tp_fp": {
+   "0.15": [
+    205,
+    69
+   ],
+   "0.25": [
+    199,
+    51
+   ],
+   "0.5": [
+    176,
+    25
+   ]
+  }
+ },
+ "teacher_config": {
+  "weights": [
+   "runs/teacher_x960_s42/weights/best.pt"
+  ],
+  "flip": false,
+  "fusion_iou": 0.55,
+  "imgsz": 960
+ },
+ "teacher_precision_curve": [
+  {
+   "conf": 0.1,
+   "tp": 202,
+   "fp": 97,
+   "precision": 0.6755852842809364
+  },
+  {
+   "conf": 0.15,
+   "tp": 200,
+   "fp": 76,
+   "precision": 0.7246376811594203
+  },
+  {
+   "conf": 0.2,
+   "tp": 196,
+   "fp": 63,
+   "precision": 0.7567567567567568
+  },
+  {
+   "conf": 0.25,
+   "tp": 192,
+   "fp": 55,
+   "precision": 0.7773279352226721
+  },
+  {
+   "conf": 0.3,
+   "tp": 190,
+   "fp": 48,
+   "precision": 0.7983193277310925
+  },
+  {
+   "conf": 0.35,
+   "tp": 185,
+   "fp": 43,
+   "precision": 0.8114035087719298
+  },
+  {
+   "conf": 0.4,
+   "tp": 183,
+   "fp": 39,
+   "precision": 0.8243243243243243
+  },
+  {
+   "conf": 0.45,
+   "tp": 175,
+   "fp": 34,
+   "precision": 0.8373205741626795
+  },
+  {
+   "conf": 0.5,
+   "tp": 168,
+   "fp": 28,
+   "precision": 0.8571428571428571
+  },
+  {
+   "conf": 0.55,
+   "tp": 154,
+   "fp": 22,
+   "precision": 0.875
+  },
+  {
+   "conf": 0.6,
+   "tp": 142,
+   "fp": 20,
+   "precision": 0.8765432098765432
+  },
+  {
+   "conf": 0.65,
+   "tp": 130,
+   "fp": 13,
+   "precision": 0.9090909090909091
+  },
+  {
+   "conf": 0.7,
+   "tp": 105,
+   "fp": 11,
+   "precision": 0.9051724137931034
+  },
+  {
+   "conf": 0.75,
+   "tp": 80,
+   "fp": 8,
+   "precision": 0.9090909090909091
+  },
+  {
+   "conf": 0.8,
+   "tp": 49,
+   "fp": 0,
+   "precision": 1.0
+  },
+  {
+   "conf": 0.85,
+   "tp": 13,
+   "fp": 0,
+   "precision": 1.0
+  },
+  {
+   "conf": 0.9,
+   "tp": 0,
+   "fp": 0,
+   "precision": 1.0
+  },
+  {
+   "conf": 0.95,
+   "tp": 0,
+   "fp": 0,
+   "precision": 1.0
+  }
+ ],
+ "thresholds": {
+  "low": 0.15,
+  "high": 0.8,
+  "target_precision": 0.95
+ },
+ "gate_teacher_beats_student_on_val": false
+}

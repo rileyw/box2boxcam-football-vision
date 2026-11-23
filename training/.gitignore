@@ -1,0 +1,13 @@
+# Local-only: environments, data, weights, runs and anything showing people.
+.venv/
+.venv-ls/
+.ls-data/
+.ls-server.log
+data/
+runs/
+weights/
+pseudo/
+eval/models/
+eval/cache/
+*.pt
+*.mlpackage/
