@@ -60,3 +60,6 @@ local_login.txt
 # Internal working material (job receipts, inventories, dev log). Never published.
 internal/
 .claude/
+
+# Fork-only Mac parity runs (scripts/mac_parity_run.sh)
+parity-run/
