@@ -7,6 +7,7 @@
 | 2026-11-23 | public baseline seeds 42 and 7 vs v1.0, and s42 vs s7 (held-out match, 396 frames) | Claude session |
 | 2026-11-23 | experiment #4: P2 head and plain fine-tune vs baseline, seeds 42 and 7 | Claude session |
 | 2026-11-23 | data-quality experiment: no-unreviewed and human-only training sets vs baseline, seeds 42 and 7 | Claude session |
+| 2026-11-23 | public + Roboflow (903 Bundesliga frames) vs baseline, seeds 42 and 7 | Claude session |
 
 ## Public-data baseline, 2 seeds (2026-11-23)
 
@@ -119,3 +120,25 @@ Held-out match, arm − baseline at the same seed, max TP at FP ≤ 25 / 60 / 10
 - **The 122 unreviewed frames don't hurt:** no significant change. Keep them.
 - **Removing the 477 auto-labelled frames clearly hurts,** with both seeds lower at every budget and 6 of 8 CIs excluding zero.
 - **Model-proposed labels with review of the uncertain ones add real value.** That's direct support for the pseudo-labelling pipeline in `teacher/` and for more data as the main lever.
+
+## Extra out-of-domain data: Roboflow "football-ball-detection" v1 (2026-11-23), no gain
+
+**Data:** Roboflow Universe `roboflow-jvuqo/football-ball-detection-rejhg`, version 1, licensed CC BY 4.0 by its uploader. That is 903 untiled 1920×1080 frames with one ball each (median 12 px), no empty frames.
+- **Content:** wide, elevated tactical-camera views of 10 professional Bundesliga matches ("SCOUTINGFEED" watermark).
+- **Provenance caveat:** the frames appear to come from the DFL Bundesliga Data Shootout competition videos, whose rights stay with the league. The CC BY licence clearly covers the annotations. Keep this to local, non-commercial experiments, and don't ship a model trained on it publicly without checking.
+
+**Setup:** all 903 frames added to the public train split (2,576 images); val and the recipe unchanged; 2 seeds. Training took 15–20 min per seed.
+
+Held-out match, (public + Roboflow) − baseline at the same seed, max TP at FP ≤ 25 / 60 / 100 / 200 (95 % CI):
+
+| | seed 42 | seed 7 |
+|---|---|---|
+| budgets | −2 [−12, +8] / −1 [−13, +8] / −6 [−19, +5] / −10 [−22, +2] | −4 [−15, +4] / +3 [−9, +11] / −8 [−18, +3] / −4 [−17, +6] |
+| TP/FP at 0.25 | 95/53 (baseline 114/153) | 101/148 (baseline 108/134) |
+
+Highest val mAP50: 0.733 and 0.732, against 0.743 and 0.734 for the baseline.
+
+**Verdict:**
+- **No gain:** every CI includes zero, and the trend is slightly negative at the larger budgets. Seed 42 is much more conservative (−100 FP but −19 TP at 0.25), which is calibration, not a better model.
+- **Professional-stadium frames don't transfer to the amateur sideline,** whereas 477 *in-domain* frames clearly helped (data-quality experiment).
+- **New data should come from the target domain:** amateur matches filmed from the sideline with a phone.
