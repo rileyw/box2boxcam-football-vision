@@ -1,0 +1,45 @@
+{
+ "weights": "eval/models/base_s42.pt",
+ "split": "/home/rwills/workspace/football-vision/training/data/public/images/val",
+ "conf": 0.25,
+ "balls": 279,
+ "false_positives": {
+  "isolated": {
+   "n": 23,
+   "share": 0.451,
+   "median_px": 14.5
+  },
+  "near_miss": {
+   "n": 20,
+   "share": 0.392,
+   "median_px": 14.9
+  },
+  "static": {
+   "n": 7,
+   "share": 0.137,
+   "median_px": 50.9
+  },
+  "near_ball": {
+   "n": 1,
+   "share": 0.02,
+   "median_px": 14.1
+  }
+ },
+ "misses": {
+  "no_candidate": {
+   "n": 48,
+   "share": 0.6,
+   "median_px": 15.5
+  },
+  "misplaced": {
+   "n": 17,
+   "share": 0.212,
+   "median_px": 16.0
+  },
+  "weak": {
+   "n": 15,
+   "share": 0.188,
+   "median_px": 22.0
+  }
+ }
+}

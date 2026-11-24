@@ -79,3 +79,24 @@ Held-out match, P2 − baseline at the same seed (95 % CI):
 | TP/FP at 0.25 (P2 vs baseline) | 94/52 vs 114/153 | 92/88 vs 108/134 |
 
 **Verdict: no gain.** At equal false-positive budgets P2 is equal or worse in every cell for both seeds. At fixed thresholds it is less confident and finds fewer small balls. On top of that it costs 1.3× the training time and more compute on the phone. The finer grid does not recover the missed small balls here, which is consistent with the earlier finding that the limit is generalising to new matches, not resolution. Added to the negative results.
+
+## Error analysis on val (2026-11-23, no test look)
+
+`analysis/error_analysis.py`, confidence 0.25, val (292 frames, 279 balls). Each false positive and each missed ball is classed (rules in the script).
+
+| | base_s42 | v1.0 |
+|---|---|---|
+| false positives | 51 | 45 |
+| … isolated (real false alarms) | 23 (45 %) | 28 (62 %) |
+| … near-miss (on a ball, 0.1 ≤ IoU < 0.5) | 20 (39 %) | 13 (29 %) |
+| … static (same spot in ≥ 3 other frames) | 7 (14 %) | 3 (7 %) |
+| … near ball / duplicate | 1 / 0 | 1 / 0 |
+| missed balls | 80 | 72 |
+| … no candidate at all | 48 (60 %) | 42 (58 %) |
+| … misplaced (a box above threshold, IoU < 0.5) | 17 (21 %) | 11 (15 %) |
+| … weak (only below-threshold boxes nearby) | 15 (19 %) | 19 (26 %) |
+
+What it means:
+- **Hard negatives (plan #6) are not worth doing yet.** Static objects cause 3 to 7 false positives.
+- **About a third of the "false positives" are boxes on a real ball** that miss IoU 0.5, which is harsh for 8–16 px balls. Most pair with a "misplaced" miss, so one slightly-off box counts as both a false positive and a miss. For aiming a camera, the ball's centre matters more than its box. A centre-distance metric (hit if the centre is within one ball width) would measure that better. That's an evaluation change to agree with the author before adopting it.
+- **60 % of misses have no candidate at all,** which again points to data and generalisation rather than tuning.
