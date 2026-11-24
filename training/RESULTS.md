@@ -5,6 +5,7 @@
 | date | what was looked at | by |
 |---|---|---|
 | 2026-11-23 | public baseline seeds 42 and 7 vs v1.0, and s42 vs s7 (held-out match, 396 frames) | Claude session |
+| 2026-11-23 | experiment #4: P2 head and plain fine-tune vs baseline, seeds 42 and 7 | Claude session |
 
 ## Public-data baseline, 2 seeds (2026-11-23)
 
@@ -53,3 +54,28 @@ Files:
 - weights in `eval/models/`, copied from `runs/base_s*/weights/best.pt`
 - reports in `eval/*_vs_*.json`
 - raw detections cached in `eval/cache/`
+
+## Experiment #4: P2 (stride-4) head (2026-11-23), rejected
+
+Two arms, each trained with seeds 42 and 7:
+- **P2:** `yolo26s-p2.yaml` (an extra 240×240 grid at stride 4), COCO `yolo26s.pt` weights loaded where shapes match (766/902 tensors), with `--trainer plain`.
+- **Control:** `yolo26s.pt` with `--trainer plain`.
+
+Same recipe as the baseline otherwise. P2 trains in 16.3 min per seed (7.5 GiB), against 12.3 min for the standard model.
+
+**The control turned out identical to the baseline.** Ultralytics 8.4.153 has `cls_remap=True` by default, which maps pretrained classes to the dataset's by name: "Transferred 708/708 items", COCO's sports-ball row included. Deterministic training then reproduced the baseline exactly (identical test detections; `best.pt` differs only in metadata). So with this Ultralytics version, the author's `SportsBallTransferTrainer` and the default trainer give the same model.
+
+Best val mAP50: baseline/control 0.743 (s42), 0.734 (s7); P2 0.720 (s42), 0.704 (s7).
+
+Held-out match, P2 − baseline at the same seed (95 % CI):
+
+| | seed 42 | seed 7 |
+|---|---|---|
+| maxTP@FP≤25 | −4 [−15, +7] | −6 [−16, +4] |
+| maxTP@FP≤60 | +0 [−12, +11] | −4 [−14, +4] |
+| maxTP@FP≤100 | −5 [−16, +7] | −11 [−22, +1] |
+| maxTP@FP≤200 | −7 [−19, +3] | −6 [−16, +4] |
+| smallTP@0.25 | −17 [−27, −8] | −14 [−22, −6] |
+| TP/FP at 0.25 (P2 vs baseline) | 94/52 vs 114/153 | 92/88 vs 108/134 |
+
+**Verdict: no gain.** At equal false-positive budgets P2 is equal or worse in every cell for both seeds. At fixed thresholds it is less confident and finds fewer small balls. On top of that it costs 1.3× the training time and more compute on the phone. The finer grid does not recover the missed small balls here, which is consistent with the earlier finding that the limit is generalising to new matches, not resolution. Added to the negative results.

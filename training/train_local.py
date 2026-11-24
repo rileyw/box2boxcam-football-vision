@@ -32,6 +32,11 @@ def main():
     p.add_argument("--imgsz", type=int, default=960)
     p.add_argument("--name", default="smoke")
     p.add_argument("--data", type=Path, help="Dataset yaml (default: the public splits).")
+    p.add_argument("--trainer", choices=("transfer", "plain"), default="transfer",
+                   help="transfer: keep COCO's sports-ball classifier row (v1.0 recipe); "
+                        "plain: standard fine-tune with a new 1-class head.")
+    p.add_argument("--pretrained", help="Weights to load into a --model given as a yaml, "
+                   "e.g. --model yolo26s-p2.yaml --pretrained yolo26s.pt (matching layers only).")
     args = p.parse_args()
 
     if args.data:
@@ -45,6 +50,8 @@ def main():
         )
     torch.cuda.reset_peak_memory_stats()
     model = YOLO(args.model)
+    if args.pretrained:
+        model = model.load(args.pretrained)
     started = time.perf_counter()
     model.train(
         data=str(yaml), epochs=args.epochs, imgsz=args.imgsz, batch=args.batch,
@@ -52,7 +59,7 @@ def main():
         optimizer="AdamW", lr0=0.001, cos_lr=True, amp=True, cache=False,
         mosaic=0.0, mixup=0.0, close_mosaic=0, scale=0.3, plots=False, val=True,
         project=str(HERE / "runs"), name=args.name, exist_ok=True, verbose=False,
-        trainer=SportsBallTransferTrainer,
+        trainer=SportsBallTransferTrainer if args.trainer == "transfer" else None,
     )
     seconds = time.perf_counter() - started
     images = int(1673 * args.fraction) * args.epochs
