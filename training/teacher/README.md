@@ -60,7 +60,7 @@ Every sampled frame (`--stride 15` is 2 per second at 30 fps) gets one status:
 - **skipped**: no box ≥ `low`. The frame is not used, because a missed small ball would otherwise teach "no ball here". `--review-empty 0.05` sends 5 % of these to review as negative candidates.
 - `--audit-auto 0.1` sends 10 % of the would-be auto frames to review instead, marked "audit of an auto-accepted frame". Comparing the teacher's boxes with your corrections on those frames shows how precise auto-accept really is on this footage. If it falls well below 95 %, raise `high` in `thresholds.json`.
 
-Check `pseudo/<match>/summary.json` for the counts. The frames show people: keep them local, and don't publish them without consent and face blurring.
+Check `pseudo/<match>/summary.json` for the counts. Frames are de-identified before they are written: heads are blurred, and the lower half of vehicles (`head_blur.py`, `--no-blur-heads` to disable). Check a sample with `privacy_qa.py` (see `DATA_GUIDE.md` §6). The frames show people: keep them local, and don't publish them without consent and face blurring.
 
 ## 2. Review in Label Studio
 

@@ -2,18 +2,34 @@
 
 Our experiments so far point the same way. A larger input, a finer P2 grid and the big teacher model did not find more balls. The model does well on the match it trained on and much worse on a new one (small-ball recall 69 % on val, 37 % on the held-out match), and 60 % of missed balls produce no candidate at all. **New, varied footage is the main lever.** This guide covers filming it, turning it into labels, and handling the people in it.
 
-## 1. Before filming: consent and privacy
+## 1. Before filming: privacy, consent and de-identification
 
-Footage of people is personal data. In the EU it falls under GDPR, and other countries have similar rules.
+*Not legal advice. Check the rules where you film, and the venue's or league's own policy.*
 
-- **Ask everyone filmed.** Tell players, and referees where present, that the match is filmed to train a ball-tracking model, what is kept, and who sees it. Get written or recorded agreement, for example a team chat message everyone answers.
-- **Minors need a parent's or guardian's consent.** If that is not possible, do not film youth matches for training.
-- **Keep raw footage local.** Frames stay on your machines (`training/pseudo/` is git-ignored). Never upload raw frames, and don't send them to third-party APIs.
-- **Publishing anything** (a dataset contribution, demo clips, social media) needs:
-  - faces and heads blurred, as the author does for the public dataset
-  - no names or shirt numbers that identify someone without consent
-  - for a CC BY 4.0 dataset contribution, your own rights to the footage
-- **Removal on request.** Keep a way to delete a person's frames if they ask (one folder per match makes that easy).
+**Footage of people is personal data, and blurring does not make it anonymous.** Players stay identifiable by kit, shirt number, build, gait and context (your club, that pitch, that date), and the raw video exists before any blur. Street-imagery services such as Google Street View don't rely on blurring alone either. They combine:
+- automatic blurring tuned to miss as few faces and plates as possible
+- an irreversible blur
+- a legal basis and public notice
+- a way for anyone to ask for more blurring or removal
+
+This pipeline follows the same model (section 6). The legal part depends on where you are:
+
+| Where | Baseline |
+|---|---|
+| **EU, UK (GDPR)** | You need a legal basis. Consent is one; a club filming its own matches may rely on *legitimate interest* instead, which still needs clear notice to players, an easy opt-out and a documented balancing test. Anything you contribute to the author's dataset falls under his GDPR obligations (France). |
+| **US** | Filming in public places is generally lawful without consent; there's no general federal privacy law. But venues and leagues often have filming policies, using someone's image commercially can raise right-of-publicity claims, and a few states have biometric laws (the ball model doesn't do face recognition). |
+| **Anywhere: minors** | Children get extra protection almost everywhere, and youth leagues and schools usually have their own rules. **Don't film youth matches for training without parents' or guardians' agreement**, whatever the blurring. |
+
+**The practical baseline for your own club's matches**, which covers most situations:
+1. **Tell everyone filmed** what is filmed and why: a ball-tracking model, kept locally, faces blurred. A team-chat message is enough.
+2. **Offer an opt-out**, and honour it: don't film that match, or delete that person's frames.
+3. **De-identify at extraction** (on by default, section 6). Unblurred frames are never written to disk.
+4. **Keep the raw video off shared and cloud storage**, and delete it once frames are extracted and checked, unless you need it again.
+5. **Removal on request:** one folder per match makes it easy to delete a person's frames, or a whole match.
+
+For anything beyond your own club's matches (other teams, publishing, minors), get the venue's or league's agreement, or proper advice.
+
+**Publishing** (a dataset contribution, demo clips, social media) is a stronger step than training locally. It needs de-identified frames *and* the players' agreement to publication. For a CC BY 4.0 dataset contribution you also need the rights to the footage.
 
 ## 2. What to film: variety beats volume
 
@@ -86,6 +102,26 @@ cd ~/workspace/football-vision/training
     --thresholds teacher/thresholds.json --stride 60
 ```
 
+**De-identification (on by default).** Every sampled frame is de-identified *before* it is written to disk (`teacher/head_blur.py`):
+- **Detection:** a pose model and a person and vehicle detector run on the whole frame and on 4 overlapping tiles, so distant players are found too.
+- **Heads:** every person's head is pixelated then blurred, faces and back-turned heads alike.
+- **Vehicles:** the lower half of every vehicle is blurred, where number plates are.
+
+The teacher, the Label Studio reviewer and training all see only blurred frames, as in the public dataset; the author found head-blurring barely changes ball detection.
+
+On public match frames it blurs about 1 % of each frame (3 % at most), and about 1 % of labelled balls end up under a blur, typically a ball held at head height. Mark those frames "Exclure image" during review. Extraction takes about 0.3 s per frame. `--blur-conf 0.1` or `--blur-imgsz 1600` blur more aggressively. `--no-blur-heads` turns it off, for footage that has no people. A match folder can't mix blurred and unblurred frames.
+
+**Check it, like a "report a problem" button.** After extraction, a person checks a random sample of each match:
+
+```sh
+.venv/bin/python -I teacher/privacy_qa.py sample --match club_20261130 --n 100
+# Label Studio: a new project using pseudo/club_20261130/privacy/label_config.xml, import
+# pseudo/club_20261130/privacy/tasks.json, box every readable face, head or number plate, export JSON
+.venv/bin/python -I teacher/privacy_qa.py apply --match club_20261130 --export ~/Downloads/privacy-export.json
+```
+
+`apply` blurs everything you marked, directly in the stored frames, and reports the leak rate. Above 2 %, delete the match's folder and re-extract with `--blur-conf 0.1`, then check again. Use the same process for anyone who asks for more blurring.
+
 **Choosing the sampling rate.** A 90-minute match at 1 frame per second is 5,400 frames. Neighbouring frames are nearly identical, so more frames add review time faster than they add information.
 - **Training matches:** `--stride 30` (1 per second). Start with two 15-minute segments if the whole match is too much to review.
 - **Reserved matches:** `--stride 60` or more. You review every frame, so 300 to 500 frames is plenty for a test.
@@ -125,10 +161,12 @@ Separate from training data, short clips help show the app and attract testers. 
 
 ## Checklist per match
 
-- [ ] Consent recorded (and guardians for minors)
+- [ ] Players told and offered an opt-out (guardians' agreement for minors); venue or league rules checked
 - [ ] Filmed with the app at 1080p30; video and logs exported
 - [ ] Copied to `~/videos/<match>/`; line added to `matches.csv` with its role
-- [ ] `pseudo_label.py` run (train: stride 30, audits on; reserved: stride 60)
+- [ ] `pseudo_label.py` run with de-identification on (train: stride 30, audits on; reserved: stride 60)
+- [ ] Privacy check: `privacy_qa.py sample` → review → `apply`, leak rate ≤ 2 %
+- [ ] Raw video deleted, or kept off shared and cloud storage
 - [ ] Reviewed in Label Studio; export imported
 - [ ] Dataset rebuilt; 2 seeds trained; gated against the baseline on both test matches; test look logged
-- [ ] Nothing raw published; demo clips blurred and consented
+- [ ] Nothing raw published; demo clips de-identified, and players agreed to publication

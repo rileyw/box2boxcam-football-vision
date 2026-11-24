@@ -15,8 +15,13 @@ build_dataset.py never puts it in training.
     python teacher/pseudo_label.py --video match.mp4 --match club_20261130 --role train \
         --teacher runs/teacher_x960_s42/weights/best.pt --thresholds teacher/thresholds.json
 
+Heads are blurred before a frame is ever written (teacher/head_blur.py, a pose model),
+so the teacher, the reviewer and training all see blurred frames, as in the public dataset.
+--no-blur-heads turns that off. Blurring reduces identifiability but does not anonymise:
+frames stay local.
+
 Output: pseudo/<match>/ with frames/, labels/ (auto), manifest.csv, review/tasks.json
-(import into Label Studio) and summary.json. Frames stay local: they show people.
+(import into Label Studio) and summary.json.
 """
 
 import argparse
@@ -59,15 +64,33 @@ def triage(confidences, low, high, role):
     return "auto" if all(c >= high for c in kept) else "review"
 
 
-def sample_frames(video, stride, out_dir, prefix):
-    """Every stride-th frame as JPEG. Returns [(item_id, frame_number, path)], fps, size."""
+def check_blur_marker(out_dir, blur_setting):
+    """Refuse to mix blurred and unblurred frames in one match folder."""
+    marker = out_dir / "blur.json"
+    if marker.exists():
+        previous = json.loads(marker.read_text())
+        if previous != blur_setting:
+            raise SystemExit(f"{out_dir} was extracted with {previous}, now {blur_setting}. "
+                             "Delete the folder to re-extract.")
+    elif any(out_dir.glob("*.jpg")):
+        raise SystemExit(f"{out_dir} holds frames from a run without a blur record. "
+                         "Delete the folder to re-extract.")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    marker.write_text(json.dumps(blur_setting))
+
+
+def sample_frames(video, stride, out_dir, prefix, blur=None):
+    """Every stride-th frame as JPEG, heads blurred first when blur is given.
+
+    Returns [(item_id, frame_number, path)], {item_id: heads blurred}, fps, size.
+    """
     cap = cv2.VideoCapture(str(video))
     if not cap.isOpened():
         raise SystemExit(f"Cannot open {video}")
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     out_dir.mkdir(parents=True, exist_ok=True)
-    items, index = [], 0
+    items, blurred, index = [], {}, 0
     while True:
         ok = cap.grab()
         if not ok:
@@ -78,11 +101,12 @@ def sample_frames(video, stride, out_dir, prefix):
                 item = f"{prefix}_{index:08d}"
                 path = out_dir / f"{item}.jpg"
                 if not path.exists():
+                    blurred[item] = blur(image) if blur else 0
                     cv2.imwrite(str(path), image, [cv2.IMWRITE_JPEG_QUALITY, 95])
                 items.append((item, index, path))
         index += 1
     cap.release()
-    return items, fps, size
+    return items, blurred, fps, size
 
 
 def main():
@@ -103,6 +127,12 @@ def main():
     p.add_argument("--audit-auto", type=float, default=0.0,
                    help="Share of auto-accepted frames sent to review instead, to measure "
                         "how precise auto-accept really is on this footage.")
+    p.add_argument("--no-blur-heads", action="store_true",
+                   help="Keep faces unblurred (default: blur heads before saving frames).")
+    p.add_argument("--blur-model", default="yolo26s-pose.pt")
+    p.add_argument("--blur-imgsz", type=int, default=1280)
+    p.add_argument("--blur-conf", type=float, default=0.15,
+                   help="Person/vehicle confidence for blurring; lower blurs more (recall first).")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--out", type=Path, default=HERE / "pseudo")
     args = p.parse_args()
@@ -122,8 +152,20 @@ def main():
     frames, labels, review = root / "frames", root / "labels", root / "review"
     labels.mkdir(parents=True, exist_ok=True)
     review.mkdir(parents=True, exist_ok=True)
-    items, fps, (width, height) = sample_frames(args.video, args.stride, frames, args.match)
-    print(f"{len(items)} frames sampled from {args.video.name} ({width}x{height}, {fps:.1f} fps)")
+    blur_setting = ({"blurred": False} if args.no_blur_heads else
+                    {"blurred": True, "model": args.blur_model, "imgsz": args.blur_imgsz,
+                     "conf": args.blur_conf})
+    check_blur_marker(frames, blur_setting)
+    blurrer = None
+    if not args.no_blur_heads:
+        sys.path.insert(0, str(HERE / "teacher"))
+        from head_blur import HeadBlurrer
+
+        blurrer = HeadBlurrer(args.blur_model, imgsz=args.blur_imgsz, conf=args.blur_conf)
+    items, heads, fps, (width, height) = sample_frames(args.video, args.stride, frames,
+                                                        args.match, blurrer)
+    print(f"{len(items)} frames sampled from {args.video.name} ({width}x{height}, {fps:.1f} fps), "
+          f"{sum(heads.values())} regions blurred (heads, vehicles)" if blurrer else "heads NOT blurred")
 
     rng = random.Random(args.seed)
     rows, tasks, counts = [], [], {"auto": 0, "review": 0, "skipped": 0}
@@ -164,7 +206,8 @@ def main():
                     }],
                 })
             rows.append({"item_id": item, "match": args.match, "role": args.role,
-                         "source_frame": frame, "status": status, "audit": audit, "boxes": len(confs),
+                         "source_frame": frame, "status": status, "audit": audit,
+                         "regions_blurred": heads.get(item, ""), "boxes": len(confs),
                          "max_conf": round(max(confs, default=0.0), 4)})
 
     with (root / "manifest.csv").open("w", newline="") as stream:
@@ -174,7 +217,8 @@ def main():
     (review / "tasks.json").write_text(json.dumps(tasks, indent=1))
     summary = {"match": args.match, "role": args.role, "video": str(args.video),
                "teacher": [str(w) for w in args.teacher], "flip": args.flip, "low": low, "high": high, "stride": args.stride,
-               "frames": len(items), **counts}
+               "frames": len(items), "regions_blurred": sum(heads.values()),
+               "blur": blur_setting, **counts}
     (root / "summary.json").write_text(json.dumps(summary, indent=1))
     print(json.dumps(summary))
 
