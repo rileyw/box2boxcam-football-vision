@@ -6,6 +6,7 @@
 |---|---|---|
 | 2026-11-23 | public baseline seeds 42 and 7 vs v1.0, and s42 vs s7 (held-out match, 396 frames) | Claude session |
 | 2026-11-23 | experiment #4: P2 head and plain fine-tune vs baseline, seeds 42 and 7 | Claude session |
+| 2026-11-23 | data-quality experiment: no-unreviewed and human-only training sets vs baseline, seeds 42 and 7 | Claude session |
 
 ## Public-data baseline, 2 seeds (2026-11-23)
 
@@ -100,3 +101,21 @@ What it means:
 - **Hard negatives (plan #6) are not worth doing yet.** Static objects cause 3 to 7 false positives.
 - **About a third of the "false positives" are boxes on a real ball** that miss IoU 0.5, which is harsh for 8–16 px balls. Most pair with a "misplaced" miss, so one slightly-off box counts as both a false positive and a miss. For aiming a camera, the ball's centre matters more than its box. A centre-distance metric (hit if the centre is within one ball width) would measure that better. That's an evaluation change to agree with the author before adopting it.
 - **60 % of misses have no candidate at all,** which again points to data and generalisation rather than tuning.
+
+## Data-quality experiment (2026-11-23)
+
+The public train split mixes three labelling methods (`metadata.csv`, `label_method`): 1,074 human-reviewed frames, 477 auto-labelled frames with only the uncertain ones reviewed (`auto_judge_reviewed`), and 122 unreviewed auto-labelled frames (`pitch_session_2`, `auto_judge_unreviewed`). Same recipe, 2 seeds, val unchanged:
+- **no_unreviewed:** 1,551 frames (drops the 122 unreviewed).
+- **human_only:** 1,074 frames (also drops the 477 auto-labelled).
+
+Held-out match, arm − baseline at the same seed, max TP at FP ≤ 25 / 60 / 100 / 200 (95 % CI):
+
+| | seed 42 | seed 7 |
+|---|---|---|
+| no_unreviewed | −1 [−12, +10] / +5 [−7, +17] / +2 [−9, +14] / −2 [−14, +9] | −8 [−23, +1] / −2 [−15, +8] / −9 [−19, +2] / −6 [−16, +3] |
+| human_only | **−14 [−23, −4] / −13 [−23, −4] / −11 [−21, −1] / −13 [−25, −3]** | −7 [−17, +2] / −6 [−18, +2] / **−14 [−24, −2] / −11 [−22, −2]** |
+
+**Verdict:**
+- **The 122 unreviewed frames don't hurt:** no significant change. Keep them.
+- **Removing the 477 auto-labelled frames clearly hurts,** with both seeds lower at every budget and 6 of 8 CIs excluding zero.
+- **Model-proposed labels with review of the uncertain ones add real value.** That's direct support for the pseudo-labelling pipeline in `teacher/` and for more data as the main lever.
