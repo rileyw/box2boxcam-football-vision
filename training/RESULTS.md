@@ -65,7 +65,7 @@ Same recipe as the baseline otherwise. P2 trains in 16.3 min per seed (7.5 GiB),
 
 **The control turned out identical to the baseline.** Ultralytics 8.4.153 has `cls_remap=True` by default, which maps pretrained classes to the dataset's by name: "Transferred 708/708 items", COCO's sports-ball row included. Deterministic training then reproduced the baseline exactly (identical test detections; `best.pt` differs only in metadata). So with this Ultralytics version, the author's `SportsBallTransferTrainer` and the default trainer give the same model.
 
-Best val mAP50: baseline/control 0.743 (s42), 0.734 (s7); P2 0.720 (s42), 0.704 (s7).
+Highest val mAP50 over the 30 epochs (not necessarily the selected checkpoint): baseline/control 0.743 (s42), 0.734 (s7); P2 0.720 (s42), 0.704 (s7).
 
 Held-out match, P2 − baseline at the same seed (95 % CI):
 
